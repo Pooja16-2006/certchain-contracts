@@ -1,57 +1,109 @@
-# Sample Hardhat 3 Project (`mocha` and `ethers`)
+# 🎓 CertChain: NFT-Based Certificate Issuance System
 
-This project showcases a Hardhat 3 project using `mocha` for tests and the `ethers` library for Ethereum interactions.
+Certificates issued as ERC-721 NFTs on the Ethereum Sepolia testnet. Anyone can verify a certificate on-chain without trusting a middleman, and issuers can revoke one if needed.
 
-To learn more about Hardhat 3, please visit the [Getting Started guide](https://hardhat.org/docs/getting-started#getting-started-with-hardhat-3). To share your feedback, join our [Hardhat 3](https://hardhat.org/hardhat3-telegram-group) Telegram group or [open an issue](https://github.com/NomicFoundation/hardhat/issues/new) in our GitHub issue tracker.
+**Live demo:** _add your Vercel link here_
+**Contract (Sepolia):** [`0xb1b3736833Dc380C955bDED8d8e3A98c71242b71`](https://sepolia.etherscan.io/address/0xb1b3736833Dc380C955bDED8d8e3A98c71242b71)
 
-## Project Overview
+<!-- Add screenshots here:
+![Verify page](./screenshots/verify.png)
+![Admin panel](./screenshots/admin.png)
+-->
 
-This example project includes:
+## Why this exists
 
-- A simple Hardhat configuration file.
-- Foundry-compatible Solidity unit tests.
-- TypeScript integration tests using `mocha` and ethers.js
-- Examples demonstrating how to connect to different types of networks, including locally simulating OP mainnet.
+Paper and PDF certificates are easy to forge and hard to check. CertChain stores each certificate on a public blockchain, so the record can't be edited quietly and verification takes one lookup.
 
-## Usage
+## Features
 
-### Running Tests
+- **Issue:** the contract owner mints a certificate NFT to a student's wallet (name, course, issue date).
+- **Verify:** anyone enters a token ID and sees the certificate details and whether it is still valid. This is a read-only call, so it costs no gas.
+- **Revoke:** the owner can mark a certificate as revoked, and the verify page then shows it as invalid.
+- **Wallet login:** MetaMask connection via ethers.js.
+- **Owner-only minting:** issuing and revoking are restricted to the contract owner (OpenZeppelin `Ownable`).
 
-To run all the tests in the project, execute the following command:
+## Tech stack
 
-```shell
-npx hardhat test
+| Layer | Tools |
+| --- | --- |
+| Smart contract | Solidity 0.8.28, OpenZeppelin ERC-721 |
+| Dev and deploy | Hardhat 3, Alchemy RPC |
+| Frontend | React, Vite, ethers.js v6 |
+| Storage | IPFS via Pinata (metadata upload script) |
+| Network | Ethereum Sepolia testnet |
+| Hosting | Vercel |
+
+## How it works
+
+```
+Admin (MetaMask) ──issueCertificate()──▶ CertificateNFT contract ──▶ Sepolia
+                                                  ▲
+Anyone ──────────verifyCertificate(tokenId)───────┘  (read-only, free)
 ```
 
-You can also selectively run the Solidity or `mocha` tests:
+Each certificate stores the recipient name, course name, issue timestamp and a revoked flag on-chain, plus a metadata URI for the NFT. Token IDs start at **0**.
 
-```shell
-npx hardhat test solidity
-npx hardhat test mocha
+### Contract functions
+
+| Function | Who can call | What it does |
+| --- | --- | --- |
+| `issueCertificate(recipient, recipientName, courseName, tokenURI_)` | Owner | Mints a new certificate NFT |
+| `verifyCertificate(tokenId)` | Anyone | Returns name, course, date, validity and metadata URI |
+| `revokeCertificate(tokenId)` | Owner | Marks a certificate as revoked |
+
+## Repositories
+
+- **Frontend:** this repo
+- **Smart contracts:** `certchain-contracts` (Hardhat project)
+
+## Run the frontend locally
+
+You need Node.js 18+ and the MetaMask extension set to **Sepolia**.
+
+```bash
+git clone https://github.com/Pooja16-2006/certchain-frontend.git
+cd certchain-frontend
+npm install
+npm run dev
 ```
 
-### Make a deployment to Sepolia
+Open `http://localhost:5173` and click **Connect Wallet**.
 
-This project includes an example Ignition module to deploy the contract. You can deploy this module to a locally simulated chain or to Sepolia.
+The contract address and ABI live in `src/contract.js`. If you deploy your own copy of the contract, update the address there.
 
-To run the deployment to a local chain:
+## Deploy the contract yourself
 
-```shell
-npx hardhat ignition deploy ignition/modules/Counter.ts
+In the `certchain-contracts` repo, create a `.env` file:
+
+```
+SEPOLIA_RPC_URL=your_alchemy_sepolia_url
+SEPOLIA_PRIVATE_KEY=your_testnet_wallet_private_key
+PINATA_JWT=your_pinata_jwt
 ```
 
-To run the deployment to Sepolia, you need an account with funds to send the transaction. The provided Hardhat configuration includes a Configuration Variable called `SEPOLIA_PRIVATE_KEY`, which you can use to set the private key of the account you want to use.
+> Use a throwaway testnet wallet. Never commit `.env`, and never use a wallet that holds real funds.
 
-You can set the `SEPOLIA_PRIVATE_KEY` variable using the `hardhat-keystore` plugin or by setting it as an environment variable.
+Then:
 
-To set the `SEPOLIA_PRIVATE_KEY` config variable using `hardhat-keystore`:
-
-```shell
-npx hardhat keystore set SEPOLIA_PRIVATE_KEY
+```bash
+npm install
+npx hardhat compile
+node scripts/deploy.js
 ```
 
-After setting the variable, you can run the deployment with the Sepolia network:
+You need some Sepolia test ETH for gas. Get it from a Sepolia faucet.
 
-```shell
-npx hardhat ignition deploy --network sepolia ignition/modules/Counter.ts
-```
+## Project status
+
+- [x] ERC-721 certificate contract deployed on Sepolia
+- [x] Issue and verify flow working end to end
+- [x] MetaMask wallet connection
+- [x] Dark glass-style UI
+- [ ] Certificate metadata pinned to IPFS from the admin form (currently a placeholder URI)
+- [ ] QR code on each certificate linking to the verify page
+- [ ] Revoke button in the admin panel
+
+## Author
+
+**Pooja M**, final-year B.E. Information Science, Sai Vidya Institute of Technology, Bengaluru
+GitHub: [Pooja16-2006](https://github.com/Pooja16-2006)
