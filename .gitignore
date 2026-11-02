@@ -30,3 +30,7 @@
 # Snapshot cheatcodes output
 /snapshots
 .env
+.env
+node_modules
+artifacts
+cache
